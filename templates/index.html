@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Cinéflix - Accueil{% endblock %}
+
+{% block extra_style %}
+<style>
+    /* Structure principale de la page d'accueil pour éviter tout chevauchement */
+    .home-container {
+        position: relative;
+        width: 100%;
+    }
+
+    /* Le carrousel en flux normal en haut */
+    .hero-carousel {
+        position: relative;
+        width: 100%;
+        height: 420px;
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        background: #0a0a0c;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+    }
+
+    .hero-slide {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        opacity: 0;
+        transition: opacity 0.6s ease-in-out;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .hero-slide.active {
+        opacity: 1;
+        z-index: 2;
+    }
+
+    .hero-gradient {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, #050507 10%, rgba(5,5,7,0.7) 60%, rgba(5,5,7,0.2) 100%), linear-gradient(to right, rgba(5,5,7,0.9) 0%, transparent 60%);
+        z-index: 2;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 3;
+        padding: 40px;
+        max-width: 650px;
+    }
+
+    .hero-badges {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        align-items: center;
+    }
+
+    .badge {
+        padding: 5px 10px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        backdrop-filter: blur(8px);
+    }
+
+    .badge.film {
+        background: var(--primary);
+        color: white;
+    }
+
+    .badge.year, .badge.rating {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: white;
+    }
+
+    .badge.rating svg {
+        color: #fbbf24;
+    }
+
+    .hero-content h1 {
+        font-size: 2.6rem;
+        margin: 0 0 10px 0;
+        font-weight: 900;
+        color: #fff;
+        text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+    }
+
+    .hero-content p {
+        font-size: 0.98rem;
+        color: #94a3b8;
+        line-height: 1.5;
+        margin-bottom: 20px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-play {
+        padding: 12px 26px;
+        background: var(--primary);
+        color: white;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(229,9,20,0.4);
+    }
+
+    .btn-play:hover {
+        background: var(--primary-hover);
+    }
+
+    .btn-info {
+        padding: 12px 22px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: white;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-info:hover {
+        background: rgba(255,255,255,0.15);
+    }
+
+    .hero-dots {
+        position: absolute;
+        bottom: 20px;
+        right: 25px;
+        z-index: 10;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        background: rgba(5,5,7,0.6);
+        padding: 6px 12px;
+        border-radius: 20px;
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--border-color);
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .dot.active {
+        background: var(--primary);
+        transform: scale(1.3);
+    }
+
+    /* Conteneur des sections du bas : z-index élevé et fond opaque pour empêcher tout débordement du carrousel */
+    .sections-flow {
+        position: relative;
+        z-index: 10;
+        background: #050507;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if search_query %}
+    <h2>Résultats de recherche pour : "{{ search_query }}"</h2>
+    <h3 style="color:var(--text-muted); margin-top:25px; font-size:1.1rem;">Films</h3>
+    {{ movie_row | safe }}
+    <h3 style="color:var(--text-muted); margin-top:40px; font-size:1.1rem;">Séries</h3>
+    {{ tv_row | safe }}
+{% else %}
+    <div class="home-container">
+        <!-- 1. Le carrousel -->
+        {% if hero_slides and not current_genre %}
+        <div class="hero-carousel" id="heroCarousel">
+            {{ hero_slides | safe }}
+            <div class="hero-dots">{{ hero_dots | safe }}</div>
+        </div>
+        {% endif %}
+
+        <!-- 2. Toutes les autres sélections bien protégées par un conteneur opaque -->
+        <div class="sections-flow">
+            <!-- Reprendre la lecture -->
+            <div id="continueWatchingSection" style="display: none; margin-bottom: 35px;">
+                <h2>Reprendre la lecture</h2>
+                <div class="row-wrapper">
+                    <button class="scroll-btn left-btn" onclick="scrollRow('continueRow', -1)">❮</button>
+                    <div class="horizontal-row" id="continueRow"></div>
+                    <button class="scroll-btn right-btn" onclick="scrollRow('continueRow', 1)">❯</button>
+                </div>
+            </div>
+
+            <!-- Barre de genres -->
+            <div class="categories-bar">
+                <a href="/" class="category-chip {% if not current_genre %}active{% endif %}">🔥 Tendances / Tout</a>
+                {% for g in movie_genres %}
+                    <a href="/?genre={{ g.id }}" class="category-chip {% if current_genre == g.id %}active{% endif %}">{{ g.name }}</a>
+                {% endfor %}
+            </div>
+
+            <!-- Tendances ou Genres -->
+            {% if current_genre %}
+                <h2>Films : {{ selected_genre_name }}</h2>
+                {{ genre_row | safe }}
+            {% else %}
+                <h2>Films Tendances</h2>
+                {{ trending_movies_row | safe }}
+                <h2>Séries Tendances</h2>
+                {{ trending_tv_row | safe }}
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    let slideIndex = 0;
+    const slides = document.getElementsByClassName("hero-slide");
+    const dots = document.getElementsByClassName("dot");
+    function showSlides() {
+        if(slides.length === 0) return;
+        for (let i = 0; i < slides.length; i++) { slides[i].classList.remove("active"); dots[i].classList.remove("active"); }
+        slideIndex++;
+        if (slideIndex > slides.length) { slideIndex = 1; }
+        if (slides[slideIndex - 1]) {
+            slides[slideIndex - 1].classList.add("active");
+            dots[slideIndex - 1].classList.add("active");
+        }
+        setTimeout(showSlides, 6000);
+    }
+    if (slides.length > 0) { setTimeout(showSlides, 6000); }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            let history = JSON.parse(localStorage.getItem('cineflix_history') || '[]');
+            let container = document.getElementById('continueWatchingSection');
+            let row = document.getElementById('continueRow');
+            if (container && row && history.length > 0) {
+                container.style.display = 'block';
+                row.innerHTML = '';
+                history.forEach(item => {
+                    let link = `/watch?id=${item.id}&type=${item.type}`;
+                    let subtitle = 'Film en cours';
+                    if (item.type === 'tv') {
+                        if (item.season && item.episode) {
+                            link += `&season=${item.season}&episode=${item.episode}`;
+                            subtitle = `Saison ${item.season} • Épisode ${item.episode}`;
+                        } else {
+                            subtitle = 'Série en cours';
+                        }
+                    }
+                    row.innerHTML += `
+                    <a href="${link}" class="movie-card" data-backdrop="${item.poster}" onmouseover="updateBackground(this)">
+                        <img src="${item.poster}" alt="${item.title}" loading="lazy">
+                        <div class="movie-title">${item.title}</div>
+                        <div style="font-size: 0.78rem; color: #4ade80; text-align: center; padding: 4px 5px 8px 5px; font-weight: 600; background: #111115;">${subtitle}</div>
+                        <div style="width: 100%; height: 3px; background: rgba(255,255,255,0.1); position: absolute; bottom: 0; left: 0;">
+                            <div style="width: 70%; height: 100%; background: var(--primary);"></div>
+                        </div>
+                    </a>
+                    `;
+                });
+            }
+        } catch(e) { console.error(e); }
+    });
+</script>
+{% endblock %}

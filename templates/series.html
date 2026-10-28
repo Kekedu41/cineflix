@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Cinéflix - Séries{% endblock %}
+{% block content %}
+<div class="categories-bar">
+    <a href="/series" class="category-chip {% if current_genre is none %}active{% endif %}">📺 Séries Populaires</a>
+    {% for g in tv_genres %}
+        <a href="/series?genre={{ g.id }}" class="category-chip {% if current_genre == g.id %}active{% endif %}">{{ g.name }}</a>
+    {% endfor %}
+</div>
+<h2>{{ page_title }}</h2>
+{{ series_row | safe }}
+{{ pagination_html | safe }}
+{% endblock %}

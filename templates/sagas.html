@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Cinéflix - Sagas{% endblock %}
+
+{% block content %}
+<div class="categories-bar">
+    <a href="/sagas" class="category-chip {% if current_saga is none %}active{% endif %}">📚 Sagas Phares</a>
+    {% for s in saga_list %}
+        <a href="/sagas?saga={{ s.id }}" class="category-chip {% if current_saga == s.id %}active{% endif %}">{{ s.name }}</a>
+    {% endfor %}
+</div>
+
+<h2>{{ page_title }}</h2>
+{{ sagas_content | safe }}
+{% endblock %}

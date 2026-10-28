@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cinéflix - Streaming Pro{% endblock %}</title>
+    <style>
+        :root {
+            --bg-color: #050507;
+            --card-bg: #111115;
+            --primary: #e50914;
+            --primary-hover: #b20710;
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --border-color: rgba(255, 255, 255, 0.06);
+        }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0; padding: 0; overflow-x: hidden; position: relative; min-height: 100vh; }
+        
+        #dynamic-bg {
+            position: fixed;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+            z-index: -1;
+            transition: background-image 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease-in-out;
+            pointer-events: none;
+            filter: saturate(1.2);
+        }
+        #dynamic-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(5,5,7,0.7) 0%, rgba(5,5,7,0.92) 70%, rgba(5,5,7,1) 100%);
+        }
+        
+        header { background: rgba(5, 5, 7, 0.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 18px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 1000; gap: 20px; }
+        .nav-left { display: flex; align-items: center; gap: 40px; }
+        .logo { color: var(--primary); font-size: 1.8rem; font-weight: 950; text-decoration: none; letter-spacing: 1.5px; text-shadow: 0 0 25px rgba(229,9,20,0.5); }
+        .nav-links { display: flex; gap: 8px; align-items: center; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.95rem; padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px; }
+        .nav-links a:hover, .nav-links a.active { color: var(--text-main); background: rgba(255,255,255,0.04); }
+        .nav-links a.active { color: white; background: rgba(229, 9, 20, 0.12); border: 1px solid rgba(229, 9, 20, 0.25); }
+        
+        .search-form { display: flex; gap: 10px; }
+        .search-input { padding: 10px 18px; width: 240px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: white; border-radius: 10px; font-size: 0.9rem; outline: none; transition: all 0.2s ease; }
+        .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); box-shadow: 0 0 15px rgba(229,9,20,0.25); width: 280px; }
+        .search-btn { padding: 10px 22px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(229,9,20,0.3); }
+        .search-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        
+        .container { max-width: 1500px; margin: 40px auto; padding: 0 40px; position: relative; z-index: 2; }
+        h2 { margin: 45px 0 20px 0; font-weight: 700; color: #f8fafc; font-size: 1.5rem; display: flex; align-items: center; gap: 12px; letter-spacing: 0.3px; }
+        h2::before { content: ''; display: block; width: 4px; height: 22px; background: var(--primary); border-radius: 4px; box-shadow: 0 0 12px var(--primary); }
+        
+        .categories-bar { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0 30px 0; scrollbar-width: none; }
+        .categories-bar::-webkit-scrollbar { display: none; }
+        .category-chip { background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-muted); padding: 10px 22px; border-radius: 30px; text-decoration: none; font-weight: 600; font-size: 0.92rem; white-space: nowrap; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 9px; backdrop-filter: blur(10px); }
+        .category-chip svg { opacity: 0.7; transition: opacity 0.2s; }
+        .category-chip:hover, .category-chip.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 6px 20px rgba(229,9,20,0.4); transform: translateY(-2px); }
+        .category-chip:hover svg, .category-chip.active svg { opacity: 1; }
+
+        .row-wrapper { position: relative; display: flex; align-items: center; margin-bottom: 20px; }
+        .horizontal-row { display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 15px 5px; scrollbar-width: none; }
+        .horizontal-row::-webkit-scrollbar { display: none; }
+        
+        .movie-card { flex: 0 0 210px; background: var(--card-bg); border-radius: 14px; overflow: hidden; text-decoration: none; color: white; transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 8px 25px rgba(0,0,0,0.6); display: flex; flex-direction: column; border: 1px solid var(--border-color); position: relative; }
+        .movie-card:hover { transform: translateY(-10px) scale(1.03); box-shadow: 0 20px 40px rgba(229, 9, 20, 0.35); border-color: rgba(229, 9, 20, 0.5); z-index: 10; }
+        .movie-card img { width: 100%; height: 310px; object-fit: cover; transition: transform 0.5s ease; }
+        .movie-card:hover img { transform: scale(1.05); }
+        .movie-title { padding: 14px 12px 10px 12px; font-size: 0.9rem; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(to top, rgba(17,17,21,1) 0%, rgba(17,17,21,0.9) 100%); }
+        
+        .scroll-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 20; background: rgba(11, 11, 14, 0.8); color: white; border: 1px solid var(--border-color); width: 48px; height: 48px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: all 0.25s ease; opacity: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .row-wrapper:hover .scroll-btn { opacity: 0.9; }
+        .scroll-btn:hover { background: var(--primary); border-color: var(--primary); opacity: 1 !important; transform: translateY(-50%) scale(1.1); box-shadow: 0 0 25px rgba(229,9,20,0.6); }
+        .left-btn { left: -24px; }
+        .right-btn { right: -24px; }
+        {% block extra_style %}{% endblock %}
+    </style>
+</head>
+<body>
+    <div id="dynamic-bg"></div>
+
+    <header>
+        <div class="nav-left">
+            <a href="/" class="logo">CINEFLIX</a>
+            <div class="nav-links">
+                <a href="/" class="{% if active_tab == 'home' %}active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Accueil</a>
+                <a href="/movies" class="{% if active_tab == 'movies' %}active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m7 3 3 18"/><path d="m14 3 3 18"/><path d="M3 7h18"/><path d="m3 11h18"/><path d="m3 15h18"/></svg> Films</a>
+                <a href="/series" class="{% if active_tab == 'series' %}active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg> Séries</a>
+                <a href="/sagas" class="{% if active_tab == 'sagas' %}active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg> Sagas</a>
+                <a href="/random" class="nav-link" style="color: #fbbf24; font-weight: 600;">🎲 Surprise</a>
+<a href="/profile" class="{% if active_tab == 'profile' %}active{% endif %}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Mes Listes</a>
+<a href="/stats" class="nav-link">📊 Statistiques</a>
+            </div>
+        </div>
+        <form action="/" method="get" class="search-form">
+            <input type="text" name="q" class="search-input" placeholder="Rechercher un film, série..." value="{{ search_query }}">
+            <button type="submit" class="search-btn">Rechercher</button>
+        </form>
+    </header>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        function scrollRow(rowId, direction) {
+            const row = document.getElementById(rowId);
+            if (row) {
+                const scrollAmount = 850;
+                row.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+            }
+        }
+
+        function updateBackground(card) {
+            const backdropUrl = card.getAttribute('data-backdrop');
+            const bgLayer = document.getElementById('dynamic-bg');
+            if (backdropUrl && bgLayer) {
+                bgLayer.style.backgroundImage = `url('${backdropUrl}')`;
+                bgLayer.style.opacity = '0.35';
+            }
+        }
+    </script>
+    {% block extra_script %}{% endblock %}
+</body>
+</html>

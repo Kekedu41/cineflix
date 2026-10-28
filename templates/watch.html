@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Cinéflix - {{ title }}{% endblock %}
+
+{% block extra_style %}
+<style>
+    .watch-container { max-width: 1500px; margin: 30px auto; padding: 0 40px; position: relative; z-index: 2; }
+    .hero-backdrop { position: relative; width: 100%; height: 500px; background-size: cover; background-position: center; border-radius: 20px; overflow: hidden; margin-bottom: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border: 1px solid var(--border-color); display: flex; align-items: flex-end; }
+    .hero-backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, #050507 5%, rgba(5,5,7,0.7) 50%, rgba(5,5,7,0.3) 100%); }
+    .hero-backdrop-content { position: relative; z-index: 3; padding: 40px; display: flex; gap: 30px; align-items: flex-end; width: 100%; }
+    .poster-img { width: 200px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid var(--border-color); object-fit: cover; }
+    .player-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 16px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border: 1px solid var(--border-color); }
+    .player-wrapper iframe { width: 100%; height: 100%; border: none; }
+    .player-switch { display: flex; gap: 12px; margin-bottom: 20px; }
+    .player-btn { padding: 10px 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .player-btn.active, .player-btn:hover { background: var(--primary); border-color: var(--primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-backdrop" style="background-image: url('{{ backdrop_url }}');">
+    <div class="hero-backdrop-content">
+        {% if poster_url %}
+        <img src="{{ poster_url }}" alt="{{ title }}" class="poster-img">
+        {% endif %}
+        <div>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px; font-weight: 700; font-size: 0.85rem;">
+                <span style="background: var(--primary); padding: 4px 10px; border-radius: 4px;">{{ type | upper }}</span>
+                <span style="background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 4px;">📅 {{ release }}</span>
+                <span style="background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 4px; color: #fbbf24;">⭐ {{ vote }} / 10</span>
+            </div>
+            <h1 style="font-size: 2.8rem; margin: 0 0 15px 0; font-weight: 900; text-shadow: 2px 2px 10px rgba(0,0,0,0.9);">{{ title }}</h1>
+            <p style="color: #94a3b8; font-size: 1.05rem; line-height: 1.6; max-width: 900px; text-shadow: 1px 1px 4px rgba(0,0,0,0.8);">{{ overview }}</p>
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                {% if trailer_key %}
+                <button onclick="openTrailer()" style="padding: 12px 24px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;">🎬 Bande-annonce</button>
+                {% endif %}
+                <button onclick="toggleFavorite()" id="favBtn" style="padding: 12px 24px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 10px; font-weight: bold; cursor: pointer;">❤️ Favoris</button>
+                <button onclick="toggleWatchlist()" id="watchBtn" style="padding: 12px 24px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 10px; font-weight: bold; cursor: pointer;">📌 À regarder plus tard</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ selectors_html | safe }}
+
+<div class="player-switch">
+    <button class="player-btn active" onclick="switchPlayer('frembed', this)">Lecteur Principal (Frembed)</button>
+    <button class="player-btn" onclick="switchPlayer('vidzy', this)">Lecteur Alternatif (Vidzy)</button>
+</div>
+
+<div class="player-wrapper">
+    <iframe id="mainPlayer" src="{{ frembed_url }}" allowfullscreen></iframe>
+</div>
+
+{{ trailer_modal_html | safe }}
+
+{% if cast_html %}
+<h2 style="margin-top: 50px;">Distribution</h2>
+<div class="row-wrapper">
+    <button class="scroll-btn left-btn" onclick="scrollRow('castRow', -1)">❮</button>
+    <div class="horizontal-row" id="castRow">
+        {{ cast_html | safe }}
+    </div>
+    <button class="scroll-btn right-btn" onclick="scrollRow('castRow', 1)">❯</button>
+</div>
+{% endif %}
+
+{{ similar_section | safe }}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    function switchPlayer(type, btn) {
+        document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        let iframe = document.getElementById('mainPlayer');
+        if (type === 'frembed') {
+            iframe.src = "{{ frembed_url }}";
+        } else if (type === 'vidzy') {
+            iframe.src = "{{ vidzy_url }}";
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            let item = {
+                id: "{{ id }}",
+                type: "{{ type }}",
+                title: "{{ safe_title }}",
+                poster: "{{ poster_url }}",
+                season: "{{ season }}",
+                episode: "{{ episode }}"
+            };
+            
+            let history = JSON.parse(localStorage.getItem('cineflix_history') || '[]');
+            history = history.filter(i => !(i.id === item.id && i.type === item.type));
+            history.unshift(item);
+            if (history.length > 20) history.pop();
+            localStorage.setItem('cineflix_history', JSON.stringify(history));
+
+            updateButtonsState();
+        } catch(e) { console.error(e); }
+    });
+
+    function toggleFavorite() {
+        let item = { id: "{{ id }}", type: "{{ type }}", title: "{{ safe_title }}", poster: "{{ poster_url }}" };
+        let favs = JSON.parse(localStorage.getItem('cineflix_favorites') || '[]');
+        let index = favs.findIndex(i => i.id === item.id && i.type === item.type);
+        if (index > -1) { favs.splice(index, 1); } else { favs.push(item); }
+        localStorage.setItem('cineflix_favorites', JSON.stringify(favs));
+        updateButtonsState();
+    }
+
+    function toggleWatchlist() {
+        let item = { id: "{{ id }}", type: "{{ type }}", title: "{{ safe_title }}", poster: "{{ poster_url }}" };
+        let watch = JSON.parse(localStorage.getItem('cineflix_watchlist') || '[]');
+        let index = watch.findIndex(i => i.id === item.id && i.type === item.type);
+        if (index > -1) { watch.splice(index, 1); } else { watch.push(item); }
+        localStorage.setItem('cineflix_watchlist', JSON.stringify(watch));
+        updateButtonsState();
+    }
+
+    function updateButtonsState() {
+        try {
+            let id = "{{ id }}";
+            let type = "{{ type }}";
+            
+            let favs = JSON.parse(localStorage.getItem('cineflix_favorites') || '[]');
+            let isFav = favs.some(i => i.id === id && i.type === type);
+            let favBtn = document.getElementById('favBtn');
+            if (favBtn) {
+                favBtn.style.background = isFav ? 'var(--primary)' : 'rgba(255,255,255,0.1)';
+                favBtn.style.borderColor = isFav ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
+            }
+
+            let watch = JSON.parse(localStorage.getItem('cineflix_watchlist') || '[]');
+            let isWatch = watch.some(i => i.id === id && i.type === type);
+            let watchBtn = document.getElementById('watchBtn');
+            if (watchBtn) {
+                watchBtn.style.background = isWatch ? 'var(--primary)' : 'rgba(255,255,255,0.1)';
+                watchBtn.style.borderColor = isWatch ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
+            }
+        } catch(e) {}
+    }
+</script>
+{% endblock %}

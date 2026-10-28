@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Cinéflix - Mes Listes{% endblock %}
+
+{% block extra_style %}
+<style>
+    .delete-btn { position: absolute; top: 12px; right: 12px; background: rgba(5,5,7,0.85); backdrop-filter: blur(8px); border: 1px solid var(--border-color); color: white; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 15; transition: all 0.2s ease; }
+    .delete-btn:hover { background: var(--primary); border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 15px rgba(229,9,20,0.6); }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Reprendre la lecture</h2>
+<div class="row-wrapper">
+    <button class="scroll-btn left-btn" onclick="scrollRow('historyRow', -1)">❮</button>
+    <div class="horizontal-row" id="historyRow">
+        <p style="color: var(--text-muted); padding: 10px;">Aucun historique de lecture pour le moment.</p>
+    </div>
+    <button class="scroll-btn right-btn" onclick="scrollRow('historyRow', 1)">❯</button>
+</div>
+
+<h2 style="margin-top: 50px;">Mes Favoris</h2>
+<div class="row-wrapper">
+    <button class="scroll-btn left-btn" onclick="scrollRow('favoritesRow', -1)">❮</button>
+    <div class="horizontal-row" id="favoritesRow">
+        <p style="color: var(--text-muted); padding: 10px;">Aucun favori pour le moment.</p>
+    </div>
+    <button class="scroll-btn right-btn" onclick="scrollRow('favoritesRow', 1)">❯</button>
+</div>
+
+<h2 style="margin-top: 50px;">À regarder plus tard</h2>
+<div class="row-wrapper">
+    <button class="scroll-btn left-btn" onclick="scrollRow('watchlistRow', -1)">❮</button>
+    <div class="horizontal-row" id="watchlistRow">
+        <p style="color: var(--text-muted); padding: 10px;">Votre liste est vide.</p>
+    </div>
+    <button class="scroll-btn right-btn" onclick="scrollRow('watchlistRow', 1)">❯</button>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    function removeItem(storageKey, id, type, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        try {
+            let items = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            items = items.filter(i => !(i.id === String(id) && i.type === type));
+            localStorage.setItem(storageKey, JSON.stringify(items));
+            location.reload();
+        } catch(e) { console.error('Erreur suppression:', e); }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            let history = JSON.parse(localStorage.getItem('cineflix_history') || '[]');
+            let historyRow = document.getElementById('historyRow');
+            if (historyRow && history.length > 0) {
+                historyRow.innerHTML = '';
+                history.forEach(item => {
+                    let link = `/watch?id=${item.id}&type=${item.type}`;
+                    let subtitle = 'Film en cours';
+                    if (item.type === 'tv') {
+                        if (item.season && item.episode) {
+                            link += `&season=${item.season}&episode=${item.episode}`;
+                            subtitle = `Saison ${item.season} • Épisode ${item.episode}`;
+                        } else {
+                            subtitle = 'Série en cours';
+                        }
+                    }
+                    historyRow.innerHTML += `
+                    <div style="position: relative; flex: 0 0 210px;">
+                        <button class="delete-btn" onclick="removeItem('cineflix_history', '${item.id}', '${item.type}', event)" title="Supprimer">✕</button>
+                        <a href="${link}" class="movie-card" data-backdrop="${item.poster}" onmouseover="updateBackground(this)" style="margin:0; width:100%;">
+                            <img src="${item.poster}" alt="${item.title}" loading="lazy">
+                            <div class="movie-title">${item.title}</div>
+                            <div style="font-size: 0.78rem; color: #4ade80; text-align: center; padding: 4px 5px 8px 5px; font-weight: 600; background: #111115;">${subtitle}</div>
+                            <div style="width: 100%; height: 3px; background: rgba(255,255,255,0.1); position: absolute; bottom: 0; left: 0;">
+                                <div style="width: 70%; height: 100%; background: var(--primary);"></div>
+                            </div>
+                        </a>
+                    </div>
+                    `;
+                });
+            }
+        } catch(e) { console.error('Erreur historique:', e); }
+
+        try {
+            let favorites = JSON.parse(localStorage.getItem('cineflix_favorites') || '[]');
+            let favRow = document.getElementById('favoritesRow');
+            if (favRow && favorites.length > 0) {
+                favRow.innerHTML = '';
+                favorites.forEach(item => {
+                    let link = `/watch?id=${item.id}&type=${item.type}`;
+                    favRow.innerHTML += `
+                    <div style="position: relative; flex: 0 0 210px;">
+                        <button class="delete-btn" onclick="removeItem('cineflix_favorites', '${item.id}', '${item.type}', event)" title="Supprimer">✕</button>
+                        <a href="${link}" class="movie-card" data-backdrop="${item.poster}" onmouseover="updateBackground(this)" style="margin:0; width:100%;">
+                            <img src="${item.poster}" alt="${item.title}" loading="lazy">
+                            <div class="movie-title">${item.title}</div>
+                        </a>
+                    </div>
+                    `;
+                });
+            }
+        } catch(e) { console.error('Erreur favoris:', e); }
+
+        try {
+            let watchlist = JSON.parse(localStorage.getItem('cineflix_watchlist') || '[]');
+            let watchRow = document.getElementById('watchlistRow');
+            if (watchRow && watchlist.length > 0) {
+                watchRow.innerHTML = '';
+                watchlist.forEach(item => {
+                    let link = `/watch?id=${item.id}&type=${item.type}`;
+                    watchRow.innerHTML += `
+                    <div style="position: relative; flex: 0 0 210px;">
+                        <button class="delete-btn" onclick="removeItem('cineflix_watchlist', '${item.id}', '${item.type}', event)" title="Supprimer">✕</button>
+                        <a href="${link}" class="movie-card" data-backdrop="${item.poster}" onmouseover="updateBackground(this)" style="margin:0; width:100%;">
+                            <img src="${item.poster}" alt="${item.title}" loading="lazy">
+                            <div class="movie-title">${item.title}</div>
+                        </a>
+                    </div>
+                    `;
+                });
+            }
+        } catch(e) { console.error('Erreur watchlist:', e); }
+    });
+</script>
+{% endblock %}

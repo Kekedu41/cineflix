@@ -1,0 +1,5 @@
+ffmpeg.exe
+ngrok.exe
+hls_cache/
+__pycache__/
+*.pyc
